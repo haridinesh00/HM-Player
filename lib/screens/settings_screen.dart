@@ -93,6 +93,16 @@ class SettingsScreen extends StatelessWidget {
             subtitle: Text('Version 1.0.0 • Offline & Ad-free'),
           ),
           ListTile(
+            leading: const Icon(Icons.privacy_tip_outlined),
+            title: const Text('Privacy Policy'),
+            subtitle: const Text('Read our privacy policy'),
+            onTap: () {
+               // In a real app, use url_launcher
+               // For now, we'll show a dialog or just a toast
+               _showPrivacyPolicy(context);
+            },
+          ),
+          ListTile(
             leading: const Icon(Icons.storage_outlined),
             title: const Text('Storage'),
             subtitle: Text(
@@ -115,6 +125,37 @@ class SettingsScreen extends StatelessWidget {
       case ThemeMode.dark:
         return 'Dark';
     }
+  }
+
+  void _showPrivacyPolicy(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Privacy Policy'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'HM Player is committed to your privacy. We do not collect, store, or transmit any personal data. '
+              'We only access your device storage to scan for music files.',
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Full policy available at:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text('hm-player.haridinesh.site/privacy-policy/'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showThemePicker(BuildContext context, ThemeProvider theme) {

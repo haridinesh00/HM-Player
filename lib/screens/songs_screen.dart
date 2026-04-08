@@ -1,6 +1,7 @@
 // lib/screens/songs_screen.dart
 import 'package:flutter/material.dart';
 import 'package:music_player/models/models.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/audio_provider.dart';
@@ -136,33 +137,55 @@ class _NoPermission extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.symmetric(horizontal: 40),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.folder_off_outlined,
-                  size: 80,
-                  color: Theme.of(context).colorScheme.primary),
-              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.library_music_rounded,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.onPrimaryContainer),
+              ),
+              const SizedBox(height: 32),
               const Text(
-                'Storage Permission Required',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                'Let\'s find your music!',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Text(
-                'Allow Music Player to access your music files to build your library.',
+                'HM Player needs your permission to scan your device for audio files. We respect your privacy and don\'t collect any personal information.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
+                  fontSize: 15,
+                  height: 1.5,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 40),
               FilledButton.icon(
-                icon: const Icon(Icons.folder_open),
-                label: const Text('Grant Permission'),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                icon: const Icon(Icons.lock_open_rounded),
+                label: const Text('Grant Access', style: TextStyle(fontWeight: FontWeight.bold)),
                 onPressed: onGrant,
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                   // Open settings if they already denied twice
+                   // import 'package:permission_handler/permission_handler.dart';
+                   openAppSettings();
+                },
+                child: const Text('Already denied? Open Settings'),
               ),
             ],
           ),

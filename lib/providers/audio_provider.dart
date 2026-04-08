@@ -3,11 +3,13 @@ import 'package:rxdart/rxdart.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import '../providers/theme_provider.dart';
 import '../services/audio_handler.dart';
 import '../models/models.dart';
 
 class AudioProvider extends ChangeNotifier {
   final MusicAudioHandler _handler;
+  final ThemeProvider _themeProvider;
 
   List<Song> _songs = [];
   List<Song> get songs => _songs;
@@ -33,10 +35,19 @@ class AudioProvider extends ChangeNotifier {
   Stream<bool> get shuffleModeStream => _handler.shuffleModeStream;
   ValueStream<MediaItem?> get mediaItemStream => _handler.mediaItem;
 
-  AudioProvider(this._handler) {
+  AudioProvider(this._handler, this._themeProvider) {
     // Rebuild UI on state changes
     _handler.playbackState.listen((_) => notifyListeners());
-    _handler.mediaItem.listen((_) => notifyListeners());
+    _handler.mediaItem.listen((item) {
+      notifyListeners();
+      // Extract dynamic colors from the new song's artwork
+      final songId = item?.extras?['songId'] as int?;
+      final albumId = item?.extras?['albumId'] as int?;
+      _themeProvider.extractColorsFromArtwork(
+        songId: songId,
+        albumId: albumId,
+      );
+    });
     _handler.queue.listen((_) => notifyListeners());
   }
 

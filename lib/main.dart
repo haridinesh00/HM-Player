@@ -40,9 +40,9 @@ Future<void> main() async {
     audioHandler = await AudioService.init(
       builder: () => MusicAudioHandler(),
       config: const AudioServiceConfig(
-        androidNotificationChannelId: 'com.musicplayer.audio',
+        androidNotificationChannelId: 'com.haridinesh.hmplayer.audio',
         androidNotificationChannelName: 'Music Player',
-        androidNotificationIcon: 'mipmap/ic_launcher',
+        androidNotificationIcon: 'mipmap/launcher_icon',
         androidShowNotificationBadge: false,
         androidNotificationOngoing: true,
         androidStopForegroundOnPause: true,
@@ -53,12 +53,14 @@ Future<void> main() async {
     debugPrint('Error initializing app: $e');
   }
 
+  final themeProvider = ThemeProvider();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: themeProvider),
         ChangeNotifierProvider(create: (_) => LibraryProvider()),
-        ChangeNotifierProvider(create: (_) => AudioProvider(audioHandler)),
+        ChangeNotifierProvider(create: (_) => AudioProvider(audioHandler, themeProvider)),
         ChangeNotifierProvider(create: (_) => PlaylistProvider()),
       ],
       child: const MusicPlayerApp(),

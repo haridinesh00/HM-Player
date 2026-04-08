@@ -1,4 +1,4 @@
-// lib/screens/now_playing_screen.dart
+import 'dart:async';
 import 'dart:developer';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/audio_provider.dart';
 import '../providers/library_provider.dart';
+import '../main.dart';
 import '../services/audio_handler.dart';
 import '../utils/extensions.dart';
 import '../widgets/equalizer_widget.dart';
@@ -223,27 +224,116 @@ class _TopBar extends StatelessWidget {
   }
 
   void _showSleepTimer(BuildContext context) {
+    final customController = TextEditingController();
+    final presets = [5, 10, 15, 30, 45, 60];
+
+    void startTimer(BuildContext dialogCtx, int minutes) {
+      Navigator.pop(dialogCtx);
+
+      // Cancel any existing timer
+      _TopBar._sleepTimer?.cancel();
+
+      _TopBar._sleepTimer = Timer(Duration(minutes: minutes), () {
+        audioHandler.pause();
+        _TopBar._sleepTimer = null;
+      });
+
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sleep timer: $minutes min'),
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Cancel',
+            onPressed: () {
+              _TopBar._sleepTimer?.cancel();
+              _TopBar._sleepTimer = null;
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Sleep timer cancelled'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    }
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sleep Timer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [15, 30, 45, 60].map((min) {
-            return ListTile(
-              title: Text('$min minutes'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Sleep timer set for $min minutes')),
-                );
-              },
-            );
-          }).toList(),
-        ),
-      ),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          title: const Text('Sleep Timer'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Preset chips
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: presets.map((min) {
+                  return ActionChip(
+                    label: Text('$min min'),
+                    backgroundColor: cs.secondaryContainer,
+                    onPressed: () => startTimer(ctx, min),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              // Custom input
+              TextField(
+                controller: customController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Custom (minutes)',
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.check_circle, color: cs.primary),
+                    onPressed: () {
+                      final val = int.tryParse(customController.text);
+                      if (val != null && val > 0) {
+                        startTimer(ctx, val);
+                      }
+                    },
+                  ),
+                ),
+                onSubmitted: (text) {
+                  final val = int.tryParse(text);
+                  if (val != null && val > 0) {
+                    startTimer(ctx, val);
+                  }
+                },
+              ),
+              // Cancel existing timer option
+              if (_TopBar._sleepTimer != null) ...[
+                const SizedBox(height: 12),
+                TextButton.icon(
+                  icon: const Icon(Icons.timer_off_outlined),
+                  label: const Text('Cancel current timer'),
+                  style: TextButton.styleFrom(foregroundColor: cs.error),
+                  onPressed: () {
+                    _TopBar._sleepTimer?.cancel();
+                    _TopBar._sleepTimer = null;
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Sleep timer cancelled'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
+
+  static Timer? _sleepTimer;
 }
 
 // ─── Player Tab ───────────────────────────────────────────────
@@ -337,8 +427,8 @@ class _ArtworkSection extends StatelessWidget {
                     ? QueryArtworkWidget(
                         id: albumId,
                         type: ArtworkType.ALBUM,
-                        size: 2000, // Tells Android to fetch a massive, high-res version
-                        quality: 100, // Max compression quality
+                        size: 800, // Fetch an optimal size to prevent memory crashes
+                        quality: 100, 
                         artworkQuality: FilterQuality.high,
                         artworkBorder: BorderRadius.zero,
                         artworkWidth:

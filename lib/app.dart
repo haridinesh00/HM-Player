@@ -22,10 +22,45 @@ class _MusicPlayerAppState extends State<MusicPlayerApp> {
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
+  // Store system Material You colors once fetched
+  ColorScheme? _systemLightScheme;
+  ColorScheme? _systemDarkScheme;
+
   @override
   void initState() {
     super.initState();
     _initAppLinks();
+    _loadSystemColors();
+  }
+
+  Future<void> _loadSystemColors() async {
+    try {
+      // Use the dynamic_color package utility to get system colors
+      final corePalette = await DynamicColorPlugin.getCorePalette();
+      if (corePalette != null) {
+        setState(() {
+          _systemLightScheme = corePalette.toColorScheme(brightness: Brightness.light);
+          _systemDarkScheme = corePalette.toColorScheme(brightness: Brightness.dark);
+        });
+      } else {
+        // Try accent color fallback
+        final accentColor = await DynamicColorPlugin.getAccentColor();
+        if (accentColor != null) {
+          setState(() {
+            _systemLightScheme = ColorScheme.fromSeed(
+              seedColor: accentColor,
+              brightness: Brightness.light,
+            );
+            _systemDarkScheme = ColorScheme.fromSeed(
+              seedColor: accentColor,
+              brightness: Brightness.dark,
+            );
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[DynamicColor] Failed to load system colors: $e');
+    }
   }
 
   Future<void> _initAppLinks() async {
@@ -57,35 +92,48 @@ class _MusicPlayerAppState extends State<MusicPlayerApp> {
   Widget build(BuildContext context) {
     final themeProvider = context.watch<ThemeProvider>();
 
-    return DynamicColorBuilder(
-      builder: (lightDynamic, darkDynamic) {
-        // Use Material You system colors if available, else seed
-        final lightScheme = lightDynamic?.harmonized() ??
-            ColorScheme.fromSeed(
-              seedColor: MusicPlayerApp._seed,
-              brightness: Brightness.light,
-            );
-        final darkScheme = darkDynamic?.harmonized() ??
-            ColorScheme.fromSeed(
-              seedColor: MusicPlayerApp._seed,
-              brightness: Brightness.dark,
-            );
+    ColorScheme lightScheme;
+    ColorScheme darkScheme;
 
-        return MaterialApp(
-          title: 'Music Player',
-          debugShowCheckedModeBanner: false,
-          themeMode: themeProvider.themeMode,
-          theme: ThemeProvider.buildTheme(
+    // When artwork-derived dynamic colors are available, use those
+    if (themeProvider.useDynamicColor && themeProvider.dynamicScheme != null) {
+      final seed = themeProvider.dynamicScheme!.primary;
+      debugPrint('[DynamicColor] Building theme with artwork seed: $seed');
+      lightScheme = ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: Brightness.light,
+      );
+      darkScheme = ColorScheme.fromSeed(
+        seedColor: seed,
+        brightness: Brightness.dark,
+      );
+    } else {
+      // Fall back to system Material You colors or default seed
+      lightScheme = _systemLightScheme ??
+          ColorScheme.fromSeed(
+            seedColor: MusicPlayerApp._seed,
             brightness: Brightness.light,
-            override: lightScheme,
-          ),
-          darkTheme: ThemeProvider.buildTheme(
+          );
+      darkScheme = _systemDarkScheme ??
+          ColorScheme.fromSeed(
+            seedColor: MusicPlayerApp._seed,
             brightness: Brightness.dark,
-            override: darkScheme,
-          ),
-          home: const HomeScreen(),
-        );
-      },
+          );
+    }
+
+    return MaterialApp(
+      title: 'Music Player',
+      debugShowCheckedModeBanner: false,
+      themeMode: themeProvider.themeMode,
+      theme: ThemeProvider.buildTheme(
+        brightness: Brightness.light,
+        override: lightScheme,
+      ),
+      darkTheme: ThemeProvider.buildTheme(
+        brightness: Brightness.dark,
+        override: darkScheme,
+      ),
+      home: const HomeScreen(),
     );
   }
 }

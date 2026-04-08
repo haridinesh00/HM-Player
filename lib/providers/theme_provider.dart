@@ -1,4 +1,5 @@
 // lib/providers/theme_provider.dart
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 import 'package:palette_generator/palette_generator.dart';
@@ -41,17 +42,30 @@ class ThemeProvider extends ChangeNotifier {
 
   Future<void> toggleDynamicColor(bool value) async {
     _useDynamicColor = value;
+    if (!value) {
+      _dynamicScheme = null;
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dynamic_color', value);
     notifyListeners();
   }
 
   // Called whenever the current song changes
-  Future<void> extractColorsFromArtwork(
-    int? albumId, {
-    bool isDark = true,
+  int _extractionId = 0; // debounce rapid changes
+
+  Future<void> extractColorsFromArtwork({
+    int? songId,
+    int? albumId,
   }) async {
-    if (!_useDynamicColor || albumId == null) {
+    final thisId = ++_extractionId;
+
+    if (!_useDynamicColor) {
+      _dynamicScheme = null;
+      notifyListeners();
+      return;
+    }
+
+    if (songId == null && albumId == null) {
       _dynamicScheme = null;
       notifyListeners();
       return;
@@ -59,35 +73,61 @@ class ThemeProvider extends ChangeNotifier {
 
     try {
       final query = OnAudioQuery();
-      final artBytes = await query.queryArtwork(
-        albumId,
-        ArtworkType.ALBUM,
-        size: 200,
-        quality: 80,
-      );
+      Uint8List? artBytes;
+
+      // Try song-level artwork first (ArtworkType.AUDIO with songId)
+      if (songId != null) {
+        artBytes = await query.queryArtwork(
+          songId,
+          ArtworkType.AUDIO,
+          size: 200,
+          quality: 80,
+        );
+        if (thisId != _extractionId) return;
+      }
+
+      // Fallback to album-level artwork
+      if ((artBytes == null || artBytes.isEmpty) && albumId != null) {
+        artBytes = await query.queryArtwork(
+          albumId,
+          ArtworkType.ALBUM,
+          size: 200,
+          quality: 80,
+        );
+        if (thisId != _extractionId) return;
+      }
 
       if (artBytes == null || artBytes.isEmpty) {
-        _dynamicScheme = null;
-        notifyListeners();
-        return;
+        debugPrint('[DynamicColor] No artwork bytes for songId=$songId, albumId=$albumId');
+        return; // Keep last valid scheme
       }
 
       final image = MemoryImage(artBytes);
       final palette = await PaletteGenerator.fromImageProvider(
         image,
-        maximumColorCount: 8,
+        maximumColorCount: 16,
+        timeout: const Duration(seconds: 5),
       );
+
+      if (thisId != _extractionId) return;
 
       final dominant = palette.dominantColor?.color ??
           palette.vibrantColor?.color ??
-          const Color(0xFF6750A4);
+          palette.mutedColor?.color;
+
+      if (dominant == null) {
+        debugPrint('[DynamicColor] No dominant color found in palette');
+        return;
+      }
+
+      debugPrint('[DynamicColor] Extracted color: $dominant');
 
       _dynamicScheme = ColorScheme.fromSeed(
         seedColor: dominant,
-        brightness: isDark ? Brightness.dark : Brightness.light,
+        brightness: Brightness.dark,
       );
-    } catch (_) {
-      _dynamicScheme = null;
+    } catch (e) {
+      debugPrint('[DynamicColor] Error extracting colors: $e');
     }
     notifyListeners();
   }

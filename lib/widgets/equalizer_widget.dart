@@ -66,7 +66,6 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
   @override
   Widget build(BuildContext context) {
     final eq = context.read<AudioProvider>().equalizer;
-    final cs = Theme.of(context).colorScheme;
 
     return FutureBuilder<AndroidEqualizerParameters>(
       future: eq.parameters,
@@ -201,7 +200,7 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
                 '${currentGain > 0 ? '+' : ''}${currentGain.round()} dB',
                 style: TextStyle(
                   fontSize: 12,
-                  color: isEnabled ? cs.primary : cs.onSurface.withOpacity(0.4),
+                  color: isEnabled ? cs.primary : cs.onSurface.withValues(alpha: 0.4),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -213,9 +212,9 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 4,
-                      disabledActiveTrackColor: cs.onSurface.withOpacity(0.2),
-                      disabledInactiveTrackColor: cs.onSurface.withOpacity(0.1),
-                      disabledThumbColor: cs.onSurface.withOpacity(0.4),
+                      disabledActiveTrackColor: cs.onSurface.withValues(alpha: 0.2),
+                      disabledInactiveTrackColor: cs.onSurface.withValues(alpha: 0.1),
+                      disabledThumbColor: cs.onSurface.withValues(alpha: 0.4),
                     ),
                     child: Slider(
                       min: min,
@@ -242,7 +241,7 @@ class _EqualizerWidgetState extends State<EqualizerWidget> {
                 freqText,
                 style: TextStyle(
                   fontSize: 13,
-                  color: cs.onSurface.withOpacity(0.6),
+                  color: cs.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
