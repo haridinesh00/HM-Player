@@ -122,7 +122,7 @@ class _MusicPlayerAppState extends State<MusicPlayerApp> {
     }
 
     return MaterialApp(
-      title: 'Music Player',
+      title: 'HM Player',
       debugShowCheckedModeBanner: false,
       themeMode: themeProvider.themeMode,
       theme: ThemeProvider.buildTheme(

@@ -41,7 +41,7 @@ Future<void> main() async {
       builder: () => MusicAudioHandler(),
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.haridinesh.hmplayer.audio',
-        androidNotificationChannelName: 'Music Player',
+        androidNotificationChannelName: 'HM Player',
         androidNotificationIcon: 'mipmap/launcher_icon',
         androidShowNotificationBadge: false,
         androidNotificationOngoing: true,
